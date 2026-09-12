@@ -6,6 +6,10 @@ $allowedOrigins = [
     'http://localhost:3002', 'http://127.0.0.1:3002',
     'http://localhost:3003', 'http://127.0.0.1:3003',
 ];
+$frontendUrl = rtrim((string) getenv('FRONTEND_URL'), '/');
+if ($frontendUrl !== '') {
+    $allowedOrigins[] = $frontendUrl;
+}
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origin, $allowedOrigins, true)) {
     header("Access-Control-Allow-Origin: {$origin}");
