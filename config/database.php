@@ -7,9 +7,10 @@ function getDbConnection(): PDO
     $database = getenv('DB_DATABASE') ?: 'taches_test';
     $username = getenv('DB_USERNAME') ?: 'postgres';
     $password = getenv('DB_PASSWORD') ?: 'motdepasse123';
+    $sslmode = getenv('DB_SSLMODE') ?: 'prefer';
 
     return new PDO(
-        "pgsql:host={$host};port={$port};dbname={$database}",
+        "pgsql:host={$host};port={$port};dbname={$database};sslmode={$sslmode}",
         $username,
         $password,
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
