@@ -1,6 +1,26 @@
 <?php
 
+$allowedOrigins = [
+    'http://localhost:3000', 'http://127.0.0.1:3000',
+    'http://localhost:3001', 'http://127.0.0.1:3001',
+    'http://localhost:3002', 'http://127.0.0.1:3002',
+    'http://localhost:3003', 'http://127.0.0.1:3003',
+];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowedOrigins, true)) {
+    header("Access-Control-Allow-Origin: {$origin}");
+    header('Vary: Origin');
+}
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
 header('Content-Type: application/json');
+header('Cache-Control: no-store, no-cache, must-revalidate');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
 require_once __DIR__ . '/config/database.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -48,15 +68,26 @@ if ($method === 'PUT' && preg_match('#^/tasks/([1-9][0-9]*)$#', $uri, $matches))
         exit;
     }
 
+    $done = filter_var($data['is_done'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+    if ($done === null) {
+        http_response_code(400);
+        echo json_encode(['error' => 'is_done doit être un booléen']);
+        exit;
+    }
+
     $pdo = getDbConnection();
     $stmt = $pdo->prepare(
-        'UPDATE tasks SET title = :title, done = :done WHERE id = :id RETURNING *'
+        'UPDATE tasks SET title = :title, description = :description, done = CAST(:done AS BOOLEAN) WHERE id = :id'
     );
     $stmt->execute([
         'id' => (int) $matches[1],
         'title' => trim($data['title']),
-        'done' => filter_var($data['is_done'], FILTER_VALIDATE_BOOLEAN),
+        'description' => trim($data['description'] ?? ''),
+        'done' => $done ? 'true' : 'false',
     ]);
+
+    $stmt = $pdo->prepare('SELECT * FROM tasks WHERE id = :id');
+    $stmt->execute(['id' => (int) $matches[1]]);
     $task = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($task === false) {
